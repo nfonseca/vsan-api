@@ -21,7 +21,7 @@ if not sys.warnoptions:
 # we set logging level
 FORMAT = "[%(filename)s:%(lineno)s - %(funcName)20s() ] %(message)s" # trick to print the function name
 logging.basicConfig(level=logging.DEBUG,format=FORMAT)
-logger = logging.getLogger(__name__) # we instantiate  a global logger for the main program
+logger = logging.getLogger(__name__) # we instantiate  a global logger for the main programc
 
 
 
