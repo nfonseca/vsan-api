@@ -7,6 +7,8 @@ from pyVim import connect
 import argparse
 import getpass
 import atexit
+import logging
+import sys
 
 
 # disable warnings from SSL Check
@@ -14,6 +16,13 @@ if not sys.warnoptions:
     import warnings
 
     warnings.simplefilter("ignore")
+
+
+# we set logging level
+FORMAT = "[%(filename)s:%(lineno)s - %(funcName)20s() ] %(message)s" # trick to print the function name
+logging.basicConfig(level=logging.DEBUG,format=FORMAT)
+logger = logging.getLogger(__name__) # we instantiate  a global logger for the main program
+
 
 
 
@@ -52,41 +61,15 @@ def main():
 
         content = si.RetrieveServiceContent()
         # we close the vc connection
+        print(content)
+        print(content+0)
         atexit.register(connect.Disconnect, si)
 
-        while True:
-            global selection
-            vx = findvxrm()
-            print('Continue ?')
-            cont = input('Type Y or N: ')
-            if cont == 'Y':
-                for vxrm_ip, esxi in vx.items():
-                    print(f'VXRM Found with IP: {vxrm_ip} running on ESXi: {esxi} \n')
 
-                selection = input(
-                    'Type the IP of VxRM to Connect to or type "all" to run the same API on ALL VxRM : ')
-                if selection in vx:
-
-                    print('Checking VxRail Manager: ', selection)
-
-                    api = api_list(selection)
-
-                    if api is not None:
-
-                        call_api(api[0], api[2])
-
-                    else:
-                        break
-                elif selection == 'all':
-                    run_same_api()
-
-            else:
-                print('\nExiting Program ...')
-                sys.exit(1)
 
     except Exception  as err:
 
-        print('Error in main(): ', err)
+        logger.exception('Error Here!')
 
 
 main()
