@@ -1,28 +1,25 @@
 #!/usr/bin/python
 
+# Script that retrieves the mapping of the vm property instanceUuid and maps it out to the VM Friendly name
+# script to be run from vxrail manager
 
-
+import sys
+# Add Pyvmomi PATH on VxRail Manager
+sys.path.append("/usr/lib/vmware-marvin/marvind/webapps/ROOT/WEB-INF/classes/scripts/lib/python2.7/site-packages")
 from pyVmomi import vim, vmodl
 from pyVim import connect
+
 import argparse
 import getpass
 import atexit
-import logging
-import sys
+import ssl
 
 
-# disable warnings from SSL Check
+# disable warnings from SSL Check when connecting to VC
 if not sys.warnoptions:
     import warnings
 
     warnings.simplefilter("ignore")
-
-
-# we set logging level
-FORMAT = "[%(filename)s:%(lineno)s - %(funcName)20s() ] %(message)s" # trick to print the function name
-logging.basicConfig(level=logging.DEBUG,format=FORMAT)
-logger = logging.getLogger(__name__) # we instantiate  a global logger for the main programc
-
 
 
 
@@ -38,12 +35,11 @@ def GetArgs():
     args = parser.parse_args()
     return args
 
-#
+
 
 def main():
-
-
-
+    global content
+    global si
 
     args = GetArgs()
     if args.password:
@@ -55,31 +51,25 @@ def main():
 
         # connection string
 
-        si = connect.SmartConnectNoSSL(host=args.vc,
-                                       user=args.user,
-                                       pwd=password)
+
+        context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+        context.verify_mode = ssl.CERT_NONE
+        si = connect.SmartConnect(host=args.vc, user=args.user, pwd=password, port=int("443"))
 
         content = si.RetrieveServiceContent()
-        # we close the vc connection
         print(content)
-        print(content+0)
+        # we close the vc connection
         atexit.register(connect.Disconnect, si)
-
 
 
     except Exception  as err:
 
-        logger.exception('Error Here!')
+        print('Error in main(): ', err)
 
 
 main()
 
+# Implementation
 
-
-
-# todo - add a connect function to VC using argparse
-# todo - main goal of the tool is to gather config information from the cluster
-# todo - Goal 1: Get Cluster Configuration
-
-
+# todo - Retrieve vSAN version
 
