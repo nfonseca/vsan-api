@@ -71,5 +71,5 @@ main()
 
 # Implementation
 
-# todo - Retrieve vSAN version
+# todo - Retrieve vSAN version via API
 
