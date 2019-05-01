@@ -13,6 +13,9 @@ import argparse
 import getpass
 import atexit
 import ssl
+# Import the vSAN API python bindings and utilities.
+import vsanmgmtObjects
+import vsanapiutils
 
 
 # disable warnings from SSL Check when connecting to VC
@@ -52,15 +55,31 @@ def main():
         # connection string
 
 
-        context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-        context.verify_mode = ssl.CERT_NONE
-        si = connect.SmartConnect(host=args.vc, user=args.user, pwd=password, port=int("443"))
+        # connection string
+
+        si = connect.SmartConnectNoSSL(host=args.vc,
+                                       user=args.user,
+                                       pwd=password)
 
         content = si.RetrieveServiceContent()
+        # we close the vc connection
+        atexit.register(connect.Disconnect, si)
+
         print(content)
         # we close the vc connection
         atexit.register(connect.Disconnect, si)
 
+        cluster = si.content.rootFolder.childEntity[0].hostFolder.childEntity[1]
+        print(cluster) # returns the moref for the cluster
+
+#        getvSANConfig = vim.cluster.VsanVcClusterConfigSystem.VsanClusterGetConfig(cluster=cluster)
+        vsancluster = vim.cluster.VsanVcClusterConfigSystem(cluster)
+
+        config = vim.cluster.VsanVcClusterConfigSystem.VsanClusterGetConfig(_this=vsancluster,cluster=cluster)
+
+
+
+        print(getvSANConfig)
 
     except Exception  as err:
 
