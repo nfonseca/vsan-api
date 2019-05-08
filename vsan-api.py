@@ -72,7 +72,7 @@ def main():
         cluster = si.content.rootFolder.childEntity[0].hostFolder.childEntity[1]
         print(cluster) # returns the moref for the cluster
 
-#        getvSANConfig = vim.cluster.VsanVcClusterConfigSystem.VsanClusterGetConfig(cluster=cluster)
+#       getvSANConfig = vim.cluster.VsanVcClusterConfigSystem.VsanClusterGetConfig(cluster=cluster)
         vsancluster = vim.cluster.VsanVcClusterConfigSystem(cluster)
 
         config = vim.cluster.VsanVcClusterConfigSystem.VsanClusterGetConfig(_this=vsancluster,cluster=cluster)
