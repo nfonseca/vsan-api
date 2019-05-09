@@ -56,6 +56,7 @@ def getClusterInstance(clusterName, serviceInstance):
          return cluster
    return None
 
+
 #Start program
 def main():
    args = GetArgs()
@@ -85,6 +86,7 @@ def main():
    #for detecting whether the host is VC or ESXi
    aboutInfo = si.content.about
 
+
    if aboutInfo.apiType == 'VirtualCenter':
       majorApiVersion = aboutInfo.apiVersion.split('.')[0]
       if int(majorApiVersion) < 6:
@@ -95,7 +97,12 @@ def main():
       #Here is an example of how to access VC side VSAN Health Service API
       vcMos = vsanapiutils.GetVsanVcMos(si._stub, context=context)
       # Get vsan health system
+      # Instantiates an object of the class vsan-cluster-health-system
       vhs = vcMos['vsan-cluster-health-system']
+
+
+
+      # improve this to fetch the registered clusters in VC rather than providing vi args
 
       cluster = getClusterInstance(args.clusterName, si)
       if cluster is None:
@@ -156,3 +163,8 @@ def main():
 # Start program
 if __name__ == "__main__":
    main()
+
+
+
+#todo fetch list of clusrter and add a selection
+
