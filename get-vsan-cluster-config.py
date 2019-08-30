@@ -1,122 +1,104 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/usr/bin/python
 
-"""
-Put something here
-"""
-
-__author__ = 'DELL EMC'
+ # Script that retrieves the mapping of the vm property instanceUuid and maps it out to the VM Friendly name
+ # script to be run from vxrail manager
 
 import sys
-# add the path for Pyvmomi on VxRail Manager
-sys.path.append("/usr/lib/vmware-marvin/marvind/webapps/ROOT/WEB-INF/classes/scripts/lib/python2.7/site-packages")
-import ssl
+
+from pyVmomi import vim, vmodl
 from pyVim.connect import SmartConnect, Disconnect
-import atexit
 import argparse
 import getpass
-#import the VSAN API python bindings
-import vsanmgmtObjects
+import atexit
+import ssl
+ # Import the vSAN API python bindings and utilities.
+ import vsanmgmtObjects
 import vsanapiutils
 
+
+ # disable warnings from SSL Check when connecting to VC
+if not sys.warnoptions:
+     import warnings
+
+     warnings.simplefilter("ignore")
+
+
+
 def GetArgs():
-   """
-   Supports the command-line arguments listed below.
-   """
-   parser = argparse.ArgumentParser(
-       description='Process args for VSAN SDK sample application')
-   parser.add_argument('-s', '--host', required=True, action='store',
-                       help='Remote host to connect to')
-   parser.add_argument('-o', '--port', type=int, default=443, action='store',
-                       help='Port to connect on')
-   parser.add_argument('-u', '--user', required=True, action='store',
-                       help='User name to use when connecting to host')
-   parser.add_argument('-p', '--password', required=False, action='store',
-                       help='Password to use when connecting to host')
-   parser.add_argument('--cluster', dest='clusterName', metavar="CLUSTER",
-                      default='VSAN-Cluster')
-   args = parser.parse_args()
-   return args
+     """
+     Supports the command-line arguments listed below.
+     """
+
+     parser = argparse.ArgumentParser(description='Process args for connecting to vCenter')
+     parser.add_argument('-v', '--vc', required=True, action='store', help='vCenter')
+     parser.add_argument('-u', '--user', required=True, action='store', help='vCenter Administrator')
+     parser.add_argument('-p', '--password', required=False, action='store', help='Password')
+     args = parser.parse_args()
+     return args
 
 
+ # Function to change the vSAN SP of all the VMs in the Cluster
+def ChangevSANSP():
 
-def getClusterInstance(clusterName, serviceInstance):
-   content = serviceInstance.RetrieveContent()
-   searchIndex = content.searchIndex
-   datacenters = content.rootFolder.childEntity
-   for datacenter in datacenters:
-      cluster = searchIndex.FindChild(datacenter.hostFolder, clusterName)
-      if cluster is not None:
-         return cluster
-   return None
+     return None
 
 
-#Start program
 def main():
-   args = GetArgs()
-   if args.password:
-      password = args.password
-   else:
-      password = getpass.getpass(prompt='Enter password for host %s and '
-                                        'user %s: ' % (args.host,args.user))
+    global content
+    global si
 
-   #For python 2.7.9 and later, the defaul SSL conext has more strict
-   #connection handshaking rule. We may need turn of the hostname checking
-   #and client side cert verification
-   context = None
-   if sys.version_info[:3] > (2,7,8):
-      context = ssl.create_default_context()
-      context.check_hostname = False
-      context.verify_mode = ssl.CERT_NONE
+    context = None
 
-   si = SmartConnect(host=args.host,
-                     user=args.user,
-                     pwd=password,
-                     port=int(args.port),
-                     sslContext=context)
+    if sys.version_info[:3] > (2, 7, 8):
+        context = ssl.create_default_context()
+        context.check_hostname = False
+        context.verify_mode = ssl.CERT_NONE
 
-   atexit.register(Disconnect, si)
+    args = GetArgs()
+    if args.password:
+        password = args.password
+    else:
+        password = getpass.getpass(prompt='Enter password for host %s and user %s: ' % (args.vc, args.user))
 
-   #for detecting whether the host is VC or ESXi
-   aboutInfo = si.content.about
+    try:
+        # connection string
 
+        # connection string
 
-   if aboutInfo.apiType == 'VirtualCenter':
-      majorApiVersion = aboutInfo.apiVersion.split('.')[0]
-      if int(majorApiVersion) < 6:
-         print('The Virtual Center with version %s (lower than 6.0) is not supported.'
-               % aboutInfo.apiVersion)
-         return -1
+        #        si = connect.SmartConnectNoSSL(host=args.vc,
+        #                                       user=args.user,
+        #                                       pwd=password,
+        #                                       sslContext=context)
 
-      #Here is an example of how to access VC side VSAN Health Service API
-      vcMos = vsanapiutils.GetVsanVcMos(si._stub, context=context)
+        si = SmartConnect(host=args.vc,
+                          user=args.user,
+                          pwd=password,
+                          sslContext=context)
 
-      # Instantiates an object of the class vsan-cluster-health-system
-      vsanclusterconfig = vcMos['vsan-cluster-config-system']
+        content = si.RetrieveServiceContent()
+        # we close the vc connection
+        atexit.register(Disconnect, si)
 
 
+         print(content)
+         # we close the vc connection
 
-
-   if aboutInfo.apiType == 'HostAgent':
-      majorApiVersion = aboutInfo.apiVersion.split('.')[0]
-      if int(majorApiVersion) < 6:
-         print('The ESXi with version %s (lower than 6.0) is not supported.'
-               % aboutInfo.apiVersion)
-         return -1
-
-      #Here is an example of how to access ESXi side VSAN Performance Service API
-      esxMos = vsanapiutils.GetVsanEsxMos(si._stub, context=context)
-
-      # Get vsan health system
-      vpm = esxMos['vsan-performance-manager']
-
-      nodeInfo = vpm.VsanPerfQueryNodeInformation()[0]
-
-
-if __name__ == "__main__":
-   main()
+         cluster = si.content.rootFolder.childEntity[0].hostFolder.childEntity[0]
+         print(cluster) # returns the moref for the cluster
 
 
 
-#todo fetch list of clusrter and add a selection
 
+         vcMos = vsanapiutils.GetVsanVcMos(si._stub, context=context)
+         vccs = vcMos['vsan-cluster-config-system']
+         vsanCluster = vccs.VsanClusterGetConfig(cluster=cluster)
+
+
+         print(vsanCluster)
+
+     except Exception  as err:
+
+         print('Error in main(): ', err)
+
+
+main()
